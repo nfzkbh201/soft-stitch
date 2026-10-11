@@ -147,12 +147,12 @@
   }
   function visualProgress() { return timer.mode==='break'||timer.status==='idle'?1:T.progress(timer); }
   function frame(now) {
-    if(now-lastFrame>50&&!document.hidden&&!$('#studio').hidden){
+    if(now-lastFrame>33&&!document.hidden&&!$('#studio').hidden){
       const preview=previewStart!==null,progress=preview?Math.min(1,(now-previewStart)/8500):visualProgress();
-      const active=(preview||(timer.status==='running'&&timer.mode==='focus'))&&!reducedMotion.matches;
+      const active=(preview||(['running','paused'].includes(timer.status)&&timer.mode==='focus'))&&!reducedMotion.matches;
       const count=Math.floor(E.pattern(timer.pattern,timer.palette,timer.design).stitches.length*progress);
       const signature=timer.pattern+timer.palette+JSON.stringify(timer.design)+count;
-      if(signature!==lastRendered||active){E.draw(hoop,timer.pattern,timer.palette,progress,{active,design:timer.design});lastRendered=signature;hoop.setAttribute('aria-label',pieceName(timer)+' embroidery, '+Math.round(progress*100)+' percent stitched');}
+      if(signature!==lastRendered||(active&&(preview||timer.status==='running'))){E.draw(hoop,timer.pattern,timer.palette,progress,{active,design:timer.design,duration:preview?8500:timer.duration});lastRendered=signature;hoop.setAttribute('aria-label',pieceName(timer)+' embroidery, '+Math.round(progress*100)+' percent stitched');}
       if(preview){$('#stage-state').textContent='A little preview';if(progress>=1){previewStart=null;$('#stage-state').textContent='On the hoop';}}lastFrame=now;
     }
     requestAnimationFrame(frame);
@@ -245,9 +245,9 @@
   }
   function drawMini() {
     if(!miniWindow||miniWindow.closed||!miniCanvas)return;
-    const progress=visualProgress(),signature=timer.pattern+timer.palette+JSON.stringify(timer.design)+Math.floor(progress*1000);
+    const progress=visualProgress(),signature=timer.pattern+timer.palette+JSON.stringify(timer.design)+Math.floor(progress*timer.duration/33);
     if(signature===miniRender)return;
-    E.draw(miniCanvas,timer.pattern,timer.palette,progress,{design:timer.design,active:timer.status==='running'&&timer.mode==='focus'&&!reducedMotion.matches});miniRender=signature;
+    E.draw(miniCanvas,timer.pattern,timer.palette,progress,{design:timer.design,duration:timer.duration,active:['running','paused'].includes(timer.status)&&timer.mode==='focus'&&!reducedMotion.matches});miniRender=signature;
   }
   async function openMini() {
     if(miniWindow&&!miniWindow.closed){miniWindow.focus();return;}if(miniOpening)return;miniOpening=true;
@@ -264,6 +264,9 @@
       doc.querySelector('.mini-sound').addEventListener('click',()=>$('#sound-toggle').click());
       doc.querySelector('.mini-close').addEventListener('click',()=>opened.close());doc.querySelector('.mini-break').addEventListener('click',startBreak);
       opened.addEventListener('pagehide',()=>{if(miniWindow===opened){miniWindow=null;miniCanvas=null;miniRender='';}},{once:true});
+      let lastMiniFrame=0;
+      function animateMini(now){if(opened.closed||miniWindow!==opened)return;if(now-lastMiniFrame>33){drawMini();lastMiniFrame=now;}opened.requestAnimationFrame(animateMini);}
+      opened.requestAnimationFrame(animateMini);
       syncMini();tick();
       if(!floating)message('Mini timer opened in a regular window. Keep the studio open; this browser does not support always-on-top mode.');
     }catch{message('The mini timer could not open here. Try the live site in desktop Chrome or Edge.');}finally{miniOpening=false;}

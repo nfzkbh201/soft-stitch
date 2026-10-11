@@ -19,6 +19,25 @@ const key = 'soft-stitch:v1';
     await page.waitForFunction(() => window.StitchData && document.querySelector('#hoop').getAttribute('aria-label').includes('percent'));
     await page.screenshot({path:'.qa/v2-studio.png',fullPage:true});
     assert.equal(await page.locator('[data-pattern]').count(),6);
+    const needleProof=await page.evaluate(()=>{
+      const design=Embroidery.pattern('cherries','rose'),total=design.stitches.length,index=design.stitches.findIndex(s=>s.colour===Embroidery.palettes.rose.main)+35,stitch=design.stitches[index];
+      const canvas=document.createElement('canvas');canvas.width=700;canvas.height=700;
+      Embroidery.draw(canvas,'cherries','rose',(index+.03)/total,{active:true,duration:total*2000});
+      const below=canvas.toDataURL();Embroidery.draw(canvas,'cherries','rose',(index+.03)/total);
+      const underClothMatches=below===canvas.toDataURL();
+      const sheet=document.createElement('canvas');sheet.width=1200;sheet.height=540;const ctx=sheet.getContext('2d');
+      ctx.fillStyle='#faf5f5';ctx.fillRect(0,0,sheet.width,sheet.height);
+      const phases=[.03,.14,.25,.4,.57,.64,.72,.81,.89,.98];
+      phases.forEach((phase,i)=>{
+        Embroidery.draw(canvas,'cherries','rose',(index+phase)/total,{active:true,duration:total*2000});
+        const x=(i%5)*240,y=Math.floor(i/5)*270;
+        ctx.drawImage(canvas,stitch.a.x+50-90,stitch.a.y+50-100,180,180,x+10,y+10,220,220);
+        ctx.fillStyle='#71374a';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText(Embroidery.needlePose(stitch,phase).stage+' / '+phase,x+120,y+252);
+      });
+      return {underClothMatches,image:sheet.toDataURL('image/png').split(',')[1]};
+    });
+    assert.equal(needleProof.underClothMatches,true,'hidden needle must not paint over the cloth');
+    fs.writeFileSync('.qa/needle-phases.png',Buffer.from(needleProof.image,'base64'));
     for(const id of ['cherries','bow','flowers','strawberries','initials','birthflower']){
       await page.locator('[data-pattern="'+id+'"]').click();
       if(id==='initials'){await page.locator('#initials').fill('NZK');await page.locator('#initials').press('Tab');}
@@ -117,10 +136,19 @@ const key = 'soft-stitch:v1';
       assert.equal(await page.evaluate(()=>!!documentPictureInPicture.window),true,'native mini window must open');
       await page.evaluate(()=>documentPictureInPicture.window.document.querySelector('.mini-start').click());
       assert.match(await page.locator('#start-button').innerText(),/Pause stitching/);
+      const miniPage=context.pages().find(p=>p!==page);
+      if(miniPage){
+        await miniPage.setViewportSize({width:340,height:480});await miniPage.bringToFront();
+        const before=await miniPage.locator('.mini-hoop').screenshot();await miniPage.waitForTimeout(750);
+        assert.notDeepEqual(before,await miniPage.locator('.mini-hoop').screenshot(),'mini needle must animate independently');
+      }
       await page.evaluate(()=>documentPictureInPicture.window.document.querySelector('.mini-start').click());
       assert.match(await page.locator('#start-button').innerText(),/Keep stitching/);
-      const miniPage=context.pages().find(p=>p!==page);
-      if(miniPage){await miniPage.setViewportSize({width:340,height:480});await miniPage.screenshot({path:'.qa/v2-mini.png',fullPage:true});assert.equal(await miniPage.evaluate(()=>document.documentElement.scrollHeight<=innerHeight),true,'mini timer fits its window');}
+      if(miniPage){
+        await miniPage.waitForTimeout(120);const frozen=await miniPage.locator('.mini-hoop').screenshot();await miniPage.waitForTimeout(300);
+        assert.deepEqual(frozen,await miniPage.locator('.mini-hoop').screenshot(),'pause must freeze the needle');
+        await miniPage.screenshot({path:'.qa/v2-mini.png',fullPage:true});assert.equal(await miniPage.evaluate(()=>document.documentElement.scrollHeight<=innerHeight),true,'mini timer fits its window');
+      }
       await page.evaluate(()=>documentPictureInPicture.window.close());
     }
     await page.locator('#reset-button').click();
@@ -154,6 +182,6 @@ const key = 'soft-stitch:v1';
     assert.equal(await noticePage.evaluate(()=>noticeLog.length),1);
     await noticePage.reload();assert.equal(await noticePage.evaluate(()=>noticeLog.length),0,'completed sessions do not notify twice');
     await notificationContext.close();assert.deepEqual(errors,[]);
-    console.log(JSON.stringify({passed:true,unitCompanion:'15 tests',patterns:6,birthFlowers:flowers.map(f=>f.name),viewports:[375,390,580,768,1024,1440],nativePictureInPicture:pipSupported,errors},null,2));
+    console.log(JSON.stringify({passed:true,patterns:6,needleOcclusion:needleProof.underClothMatches,birthFlowers:flowers.map(f=>f.name),viewports:[375,390,580,768,1024,1440],nativePictureInPicture:pipSupported,errors},null,2));
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -205,6 +205,84 @@
     ctx.globalAlpha=alpha*.1;ctx.strokeStyle='#2e1d1d';ctx.lineWidth=.6;
     ctx.beginPath();ctx.moveTo(s.a.x-nx,s.a.y-ny);ctx.lineTo(s.b.x-nx,s.b.y-ny);ctx.stroke();ctx.globalAlpha=1;
   }
+  const clamp = value => Math.max(0, Math.min(1, value));
+  const ease = value => { const t=clamp(value); return t*t*(3-2*t); };
+  const project = p => point(p.x, p.y-p.z*.72);
+  function stitchFrame(total, progress, duration = total*2000) {
+    const position=clamp(progress)*total;
+    if(position>=total)return {done:total,index:total,phase:1};
+    // Fast sessions are a time lapse, with one legible needle pass per batch.
+    const batch=Math.max(1,Math.ceil(total*1400/Math.max(1,duration)));
+    const start=Math.floor(position/batch)*batch,end=Math.min(total,start+batch),phase=(position-start)/(end-start);
+    const done=start+Math.floor((end-start)*ease((phase-.84)/.12));
+    return {done,index:end-1,phase};
+  }
+  function needlePose(stitch, phase) {
+    const p=clamp(phase),a=stitch.a,b=stitch.b;
+    let tip,axis,stage,hole=null,holeAmount=0;
+    if(p<.06){stage='below';tip={x:a.x,y:a.y,z:-70};axis={x:24,y:8,z:-56};}
+    else if(p<.3){
+      stage='emerge';const rise=ease((p-.06)/.24)*1.25;
+      axis={x:24,y:8,z:-56};tip={x:a.x-axis.x*rise,y:a.y-axis.y*rise,z:56*rise};
+      hole=a;holeAmount=1-clamp((rise-1)/.25);
+    }else if(p<.58){
+      stage='travel';const t=ease((p-.3)/.28),angle=t*Math.PI;
+      axis={x:24*Math.cos(angle)+36*Math.sin(angle),y:8*Math.cos(angle),z:-56*Math.cos(angle)};
+      tip={x:(a.x-30)*(1-t)+b.x*t,y:(a.y-10)*(1-t)+b.y*t,z:70*(1-t)+24*Math.sin(t*Math.PI)};
+    }else if(p<.84){
+      stage='pierce';const depth=ease((p-.58)/.26)*1.14;
+      axis={x:-24,y:-8,z:56};tip={x:b.x-axis.x*depth,y:b.y-axis.y*depth,z:-56*depth};
+      hole=b;holeAmount=1;
+    }else{
+      stage='tighten';axis={x:-24,y:-8,z:56};tip={x:b.x+30,y:b.y+10,z:-70};
+      hole=b;holeAmount=1-ease((p-.84)/.12);
+    }
+    const at=t=>({x:tip.x+axis.x*t,y:tip.y+axis.y*t,z:tip.z+axis.z*t});
+    let from=0,to=1;
+    // Intersect the needle with z=0. Only the metal above the cloth is rendered.
+    if(axis.z>0)from=Math.max(0,-tip.z/axis.z);
+    else if(axis.z<0)to=Math.min(1,-tip.z/axis.z);
+    else if(tip.z<0)to=-1;
+    const visible=from<to&&from<1&&to>0;
+    const eye=at(.91),end=eye.z>0?project(eye):p<.3?a:b;
+    const slack=p<.3?Math.max(0,eye.z)*1.5:p<.84?24+Math.max(0,eye.z)*.55:24*(1-ease((p-.84)/.12));
+    return {stage,tip,axis,eye,end,slack,hole,holeAmount,visible,from:clamp(from),to:clamp(to),at};
+  }
+  function drawNeedle(ctx,stitch,phase) {
+    const pose=needlePose(stitch,phase),{hole,holeAmount}=pose;
+    if(hole&&holeAmount>0){
+      ctx.save();ctx.globalAlpha=holeAmount;
+      ctx.strokeStyle='#927e6040';ctx.lineWidth=.8;ctx.beginPath();ctx.ellipse(hole.x,hole.y+1,5,2.4,0,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='#66503b9c';ctx.beginPath();ctx.ellipse(hole.x,hole.y,2.25,1.15,-.2,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#fffaf0';ctx.beginPath();ctx.ellipse(hole.x,hole.y+.8,2.6,1.5,0,0,Math.PI);ctx.stroke();ctx.restore();
+    }
+    if(pose.stage!=='below'&&(pose.eye.z>0||phase>=.3)){
+      const {end,slack}=pose,dx=end.x-stitch.a.x,dy=end.y-stitch.a.y,length=Math.hypot(dx,dy)||1;
+      const nx=-dy/length,ny=dx/length;
+      ctx.save();ctx.lineCap='round';ctx.strokeStyle=stitch.colour;ctx.lineWidth=stitch.width*.82;
+      ctx.shadowColor='#4d362c30';ctx.shadowBlur=2;ctx.shadowOffsetY=2;
+      ctx.beginPath();ctx.moveTo(stitch.a.x,stitch.a.y);
+      ctx.bezierCurveTo(stitch.a.x+dx*.23+nx*slack,stitch.a.y+dy*.23+ny*slack,end.x-dx*.2+nx*slack*.55,end.y-dy*.2+ny*slack*.55,end.x,end.y);ctx.stroke();
+      ctx.shadowColor='transparent';ctx.strokeStyle='#ffffff50';ctx.lineWidth=.6;ctx.stroke();ctx.restore();
+    }
+    if(!pose.visible)return pose;
+    const start=project(pose.at(pose.from)),end=project(pose.at(pose.to));
+    const dx=end.x-start.x,dy=end.y-start.y,length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length;
+    const startWidth=pose.from<.08?pose.from*19:1.55,endWidth=1.65;
+    ctx.save();
+    const groundStart=pose.at(pose.from),groundEnd=pose.at(pose.to);
+    ctx.strokeStyle='#49312628';ctx.lineWidth=3;ctx.shadowColor='#49312633';ctx.shadowBlur=5;
+    ctx.beginPath();ctx.moveTo(groundStart.x+3,groundStart.y+3);ctx.lineTo(groundEnd.x+3,groundEnd.y+3);ctx.stroke();ctx.shadowColor='transparent';
+    const metal=ctx.createLinearGradient(start.x-nx*2,start.y-ny*2,start.x+nx*2,start.y+ny*2);
+    metal.addColorStop(0,'#656773');metal.addColorStop(.32,'#fafbff');metal.addColorStop(.66,'#b8bec9');metal.addColorStop(1,'#606471');ctx.fillStyle=metal;
+    ctx.beginPath();ctx.moveTo(start.x-nx*startWidth,start.y-ny*startWidth);ctx.lineTo(end.x-nx*endWidth,end.y-ny*endWidth);ctx.lineTo(end.x+nx*endWidth,end.y+ny*endWidth);ctx.lineTo(start.x+nx*startWidth,start.y+ny*startWidth);ctx.closePath();ctx.fill();ctx.strokeStyle='#646270';ctx.lineWidth=.55;ctx.stroke();
+    if(pose.from<.88&&pose.to>.94){
+      const eye=project(pose.eye),angle=Math.atan2(dy,dx);
+      ctx.strokeStyle='#53535e';ctx.lineWidth=.8;ctx.fillStyle='#6b6460';ctx.beginPath();ctx.ellipse(eye.x,eye.y,3.4,.85,angle,0,Math.PI*2);ctx.fill();ctx.stroke();
+      ctx.strokeStyle=stitch.colour;ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(eye.x-nx*2,eye.y-ny*2);ctx.lineTo(eye.x+nx*.5,eye.y+ny*.5);ctx.stroke();
+    }
+    ctx.restore();return pose;
+  }
   function draw(canvas, id='cherries', palette='rose', progress=1, options={}) {
     const ctx=canvas.getContext('2d'),width=canvas.width,height=canvas.height;
     ctx.clearRect(0,0,width,height);ctx.save();ctx.scale(width/700,height/700);
@@ -225,18 +303,14 @@
     }
     ctx.translate(50,50);
     if(options.thumbnail){ctx.translate(300,300);ctx.scale(1.65,1.65);ctx.translate(-300,-300);}
-    const design=pattern(id,palette,options.design),position=design.stitches.length*Math.max(0,Math.min(1,progress)),n=Math.floor(position);
+    const design=pattern(id,palette,options.design),position=design.stitches.length*clamp(progress);
+    const sewing=options.active&&progress<1,frame=stitchFrame(design.stitches.length,progress,options.duration);
+    const n=sewing?frame.done:Math.floor(position);
     if(progress<1&&!options.thumbnail){ctx.lineWidth=1;ctx.strokeStyle='#b398aa42';ctx.setLineDash([2,4]);for(const points of design.outlines){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();}ctx.setLineDash([]);}
     for(let i=0;i<n;i++) drawThread(ctx,design.stitches[i]);
-    if(options.active&&n<design.stitches.length){
-      const s=design.stitches[n],phase=position-n,t=Math.min(1,phase*1.55),lift=Math.sin(phase*Math.PI)*28;
-      const tip=point(s.a.x+(s.b.x-s.a.x)*t,s.a.y+(s.b.y-s.a.y)*t);
-      drawThread(ctx,{...s,b:tip},Math.min(1,phase*3));
-      ctx.strokeStyle=s.colour;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(s.a.x,s.a.y);ctx.bezierCurveTo(s.a.x-24,s.a.y-lift*2-10,tip.x+44,tip.y-lift*3,tip.x+15,tip.y-lift-36);ctx.stroke();
-      ctx.save();ctx.translate(tip.x,tip.y-lift);ctx.rotate(.3+Math.sin(phase*Math.PI)*.35);ctx.shadowColor='#50372c55';ctx.shadowBlur=4;ctx.shadowOffsetY=lift*.3;ctx.strokeStyle='#77777e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-48);ctx.stroke();ctx.shadowColor='transparent';ctx.strokeStyle='#f5f5f5';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(-.5,-2);ctx.lineTo(-.5,-47);ctx.stroke();ctx.strokeStyle='#5d575a';ctx.lineWidth=.8;ctx.beginPath();ctx.ellipse(0,-43,1.2,3,0,0,Math.PI*2);ctx.stroke();ctx.restore();
-    }
+    if(sewing&&frame.index<design.stitches.length)drawNeedle(ctx,design.stitches[frame.index],frame.phase);
     if(!options.thumbnail){ctx.fillStyle='#b2a28f';ctx.textAlign='center';ctx.font='italic 15px Georgia';ctx.fillText(progress>=1?'a little time, a little thread':'one stitch at a time',300,491);}
     ctx.restore();return {done:n,total:design.stitches.length};
   }
-  root.Embroidery={draw,pattern,palettes,names,coloursFor,title};
+  root.Embroidery={draw,pattern,palettes,names,coloursFor,title,needlePose,stitchFrame};
 })(globalThis);

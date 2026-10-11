@@ -9,7 +9,7 @@ A gentle embroidery focus timer by [Noor Zeb Khan](https://github.com/nfzkbh201)
 ## What it does
 
 - Six pattern families: cherries, a ribbon bow, a bouquet, strawberries, personal initials, and twelve birth flowers.
-- Directional long-and-short stitches, textured floss, and a needle that lifts and pulls the thread through each stitch.
+- Directional long-and-short stitches, textured floss, and a needle that emerges through the cloth, turns, pierces it, and pulls the thread taut. Metal below the fabric is occluded, not just faded.
 - Rose, cornflower, and peach palettes, plus custom petal, accent, and leaf colours.
 - Custom focus sessions, pause/resume, and recovery after a refresh.
 - A short animation preview that does not count as a focus session.
@@ -29,11 +29,13 @@ Choose a pattern, select a thread palette, and set a focus session from 1 to 180
 
 The needle follows actual individual stitch segments drawn on a textured fabric canvas. The timer uses a saved deadline, so refreshing or temporarily leaving the tab does not lose elapsed time. A session completes when the tab next runs if the browser was sleeping or closed. It cannot play its optional chime while the browser is closed.
 
+Normal sessions show individual sewing passes. Fast sessions and the preview use a time lapse, grouping stitches into readable needle cycles rather than flickering through hundreds of passes. Pausing freezes the needle in place; reduced motion removes the needle movement. The mini window animates independently of the studio's visibility.
+
 Finished pieces retain the initials, month, and exact colours chosen for that session. Existing v1 sessions and pieces migrate automatically; there is no longer a 365-piece limit. Browser storage limits still apply. There are no analytics or remote font/image requests.
 
 ## Little rituals
 
-The header's mini-window icon opens an always-on-top companion when the browser supports [Document Picture-in-Picture](https://developer.chrome.com/docs/web-platform/document-picture-in-picture). Otherwise it opens a regular small browser window, which is not always on top. Keep the studio tab open; the mini window shares its timer, closes when the studio closes, and does not create a separate session.
+The header's mini-window icon, immediately left of the sound icon, opens an always-on-top companion when the browser supports [Document Picture-in-Picture](https://developer.chrome.com/docs/web-platform/document-picture-in-picture). This is a browser companion, not an installed macOS or Windows desktop widget. Otherwise it opens a regular small browser window, which is not always on top. Keep the studio tab open; the mini window shares its timer, closes when the studio closes, and does not create a separate session.
 
 Session settings offer an optional break after a finished piece. Breaks only start when selected, never save a second embroidery, and return to the previous focus duration. Notifications require permission through the settings toggle and a supported secure browser. They are local notifications, not push notifications: a closed tab or sleeping device cannot deliver an on-time alert. Sound must be enabled and permitted by the browser.
 
