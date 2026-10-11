@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faeff1">
+  <meta name="description" content="Make a little time for yourself. A gentle embroidery timer by Noor Zeb Khan.">
+  <title>Soft Stitch - a little time, a little thread</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="style.css">
+  <script defer src="assets/lucide.min.js"></script>
+  <script defer src="timer.js"></script>
+  <script defer src="embroidery.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#studio" aria-label="Soft Stitch home"><i data-lucide="flower-2" aria-hidden="true"></i><span>soft stitch<span class="brand-period">.</span></span></a>
+    <nav class="view-tabs" aria-label="Main navigation">
+      <a href="#studio" class="view-tab active" data-view="studio" aria-current="page"><i data-lucide="scissors" aria-hidden="true"></i> The studio</a>
+      <a href="#collection" class="view-tab" data-view="collection"><i data-lucide="grid-2x2" aria-hidden="true"></i> My collection <span id="collection-count">0</span></a>
+    </nav>
+    <button id="sound-toggle" class="icon-button sound-toggle" type="button" aria-label="Enable completion sound" aria-pressed="false" title="Enable completion sound"><i data-lucide="volume-x" aria-hidden="true"></i></button>
+  </header>
+
+  <main>
+    <section id="studio" class="studio-view" aria-labelledby="studio-title">
+      <div class="intro"><div><p class="eyebrow">YOUR LITTLE CREATIVE PAUSE</p><h1 id="studio-title">Good things take <em>a little time.</em></h1></div><p class="today" id="today"></p></div>
+      <div class="studio-layout">
+        <aside class="pattern-panel" aria-label="Embroidery settings">
+          <h2 class="section-label">01 <span>Pick a pattern</span></h2>
+          <div class="pattern-list" role="group" aria-label="Embroidery pattern">
+            <button class="pattern-option selected" data-pattern="cherries" aria-pressed="true"><canvas width="150" height="150" data-thumbnail="cherries" aria-hidden="true"></canvas><span>Cherry picking<small>A sweet little pair</small></span><i data-lucide="check" aria-hidden="true"></i></button>
+            <button class="pattern-option" data-pattern="bow" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="bow" aria-hidden="true"></canvas><span>Tied with love<small>A ribbon, just because</small></span><i data-lucide="check" aria-hidden="true"></i></button>
+            <button class="pattern-option" data-pattern="flowers" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="flowers" aria-hidden="true"></canvas><span>In full bloom<small>A handful of flowers</small></span><i data-lucide="check" aria-hidden="true"></i></button>
+          </div>
+          <h2 class="section-label thread-label">02 <span>Choose your thread</span></h2>
+          <div class="thread-options" role="group" aria-label="Thread colour">
+            <button class="thread-swatch selected" data-palette="rose" style="--swatch:#b94463" title="Rose" aria-label="Rose thread" aria-pressed="true"></button>
+            <button class="thread-swatch" data-palette="blue" style="--swatch:#537f9b" title="Cornflower" aria-label="Cornflower thread" aria-pressed="false"></button>
+            <button class="thread-swatch" data-palette="peach" style="--swatch:#cf7b57" title="Peach" aria-label="Peach thread" aria-pressed="false"></button>
+          </div>
+          <p class="thread-name" id="thread-name">Rose / olive / butter</p>
+          <div class="studio-note"><i data-lucide="heart" aria-hidden="true"></i><p>A little less hurry.<br>A little more here.</p></div>
+        </aside>
+
+        <div class="embroidery-stage">
+          <div class="stage-caption"><span id="pattern-number">PATTERN NO. 01</span><span id="stage-state">On the hoop</span></div>
+          <canvas id="hoop" width="1000" height="1000" role="img" aria-label="A wooden embroidery hoop with a stitched cherry pattern"></canvas>
+          <div class="stitch-meta"><span class="stitch-dot"></span><span id="stitch-caption">Cherry picking</span><span id="stitch-progress">Made with a little patience</span></div>
+        </div>
+
+        <aside class="timer-panel" aria-label="Focus timer">
+          <h2 class="section-label">03 <span>Make a little time</span></h2>
+          <div class="timer-heading"><span class="session-status" id="session-status">A moment for you</span><span id="session-badge">FOCUS</span></div>
+          <div id="timer-display" class="timer-display" role="timer" aria-label="25 minutes remaining">25<span>:</span>00</div>
+          <div class="duration-options" role="group" aria-label="Session duration">
+            <button data-duration="15" aria-pressed="false">15 min</button><button data-duration="25" class="selected" aria-pressed="true">25 min</button><button data-duration="45" aria-pressed="false">45 min</button>
+          </div>
+          <div class="custom-duration"><label for="minutes">Your own pace</label><div><input id="minutes" type="number" inputmode="numeric" min="1" max="180" step="1" value="25" aria-describedby="duration-error"><span>min</span></div></div>
+          <p id="duration-error" class="field-error" hidden>Choose a whole number from 1 to 180.</p>
+          <label class="intention-label" for="intention">What's on your mind?</label>
+          <input id="intention" class="intention-input" maxlength="100" placeholder="A chapter, a task, a little breathing room..." autocomplete="off">
+          <button id="start-button" class="primary-button"><i data-lucide="play" aria-hidden="true"></i><span>Start stitching</span></button>
+          <div class="session-actions"><button id="reset-button" class="text-button" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i> Start over</button><button id="preview-button" class="text-button"><i data-lucide="eye" aria-hidden="true"></i> Preview stitches</button></div>
+          <div class="session-progress"><div id="progress-bar"></div></div>
+          <p class="progress-note" id="progress-note">One stitch at a time.</p>
+          <div class="daily-total"><i data-lucide="sun" aria-hidden="true"></i><div><strong id="today-minutes">0 minutes</strong><span>of time for yourself today</span></div></div>
+        </aside>
+      </div>
+      <div class="bottom-rule"><span>THE SOFT STITCH STUDIO</span><span>Time spent well. Something lovely to keep.</span><span>BY NOOR ZEB KHAN</span></div>
+    </section>
+
+    <section id="collection" class="collection-view" hidden aria-labelledby="collection-title">
+      <div class="intro"><div><p class="eyebrow">LITTLE MOMENTS, ALL YOURS</p><h1 id="collection-title">Your time, <em>beautifully kept.</em></h1></div><p class="today" id="collection-total">0 pieces stitched</p></div>
+      <div id="empty-collection" class="empty-collection"><i data-lucide="flower-2" aria-hidden="true"></i><h2>A place for your first piece.</h2><p>Every finished session belongs here.</p><a href="#studio" class="primary-button">Back to the studio <i data-lucide="arrow-up-right" aria-hidden="true"></i></a></div>
+      <div id="collection-grid" class="collection-grid"></div>
+    </section>
+  </main>
+
+  <dialog id="finish-dialog" aria-labelledby="finish-title">
+    <button id="close-finish" class="icon-button close-dialog" aria-label="Close completed session"><i data-lucide="x" aria-hidden="true"></i></button>
+    <p class="eyebrow">A LITTLE TIME, WELL SPENT</p><h2 id="finish-title">Look what you made.</h2>
+    <canvas id="finished-piece" width="700" height="700" role="img" aria-label="Your completed embroidery"></canvas>
+    <p id="finish-detail"></p><div class="finish-actions"><button id="download-finished" class="primary-button"><i data-lucide="download" aria-hidden="true"></i> Keep a picture</button><button id="view-collection" class="text-button">My collection <i data-lucide="arrow-right" aria-hidden="true"></i></button></div>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>
