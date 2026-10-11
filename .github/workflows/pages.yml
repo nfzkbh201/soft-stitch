@@ -23,8 +23,9 @@ jobs:
           node --check dist/app.js
           node --check dist/embroidery.js
           node --check dist/timer.js
+          node --check dist/data.js
       - name: Test timer behavior
-        run: node --test tests/timer.test.cjs
+        run: node --test tests/*.test.cjs
       - name: Upload website
         uses: actions/upload-pages-artifact@v4
         with:

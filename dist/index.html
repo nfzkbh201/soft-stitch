@@ -8,7 +8,9 @@
   <title>Soft Stitch - a little time, a little thread</title>
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="extras.css">
   <script defer src="assets/lucide.min.js"></script>
+  <script defer src="data.js"></script>
   <script defer src="timer.js"></script>
   <script defer src="embroidery.js"></script>
   <script defer src="app.js"></script>
@@ -20,7 +22,11 @@
       <a href="#studio" class="view-tab active" data-view="studio" aria-current="page"><i data-lucide="scissors" aria-hidden="true"></i> The studio</a>
       <a href="#collection" class="view-tab" data-view="collection"><i data-lucide="grid-2x2" aria-hidden="true"></i> My collection <span id="collection-count">0</span></a>
     </nav>
-    <button id="sound-toggle" class="icon-button sound-toggle" type="button" aria-label="Enable completion sound" aria-pressed="false" title="Enable completion sound"><i data-lucide="volume-x" aria-hidden="true"></i></button>
+    <div class="header-actions">
+      <button id="compact-toggle" class="icon-button" aria-label="Open mini timer" title="Open mini timer"><i data-lucide="picture-in-picture-2" aria-hidden="true"></i></button>
+      <button id="sound-toggle" class="icon-button sound-toggle" type="button" aria-label="Enable completion sound" aria-pressed="false" title="Enable completion sound"><i data-lucide="volume-x" aria-hidden="true"></i></button>
+      <button id="settings-toggle" class="icon-button" aria-label="Session settings" title="Session settings"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></button>
+    </div>
   </header>
 
   <main>
@@ -33,14 +39,21 @@
             <button class="pattern-option selected" data-pattern="cherries" aria-pressed="true"><canvas width="150" height="150" data-thumbnail="cherries" aria-hidden="true"></canvas><span>Cherry picking<small>A sweet little pair</small></span><i data-lucide="check" aria-hidden="true"></i></button>
             <button class="pattern-option" data-pattern="bow" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="bow" aria-hidden="true"></canvas><span>Tied with love<small>A ribbon, just because</small></span><i data-lucide="check" aria-hidden="true"></i></button>
             <button class="pattern-option" data-pattern="flowers" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="flowers" aria-hidden="true"></canvas><span>In full bloom<small>A handful of flowers</small></span><i data-lucide="check" aria-hidden="true"></i></button>
+            <button class="pattern-option" data-pattern="strawberries" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="strawberries" aria-hidden="true"></canvas><span>Berry sweet<small>Freshly picked</small></span><i data-lucide="check" aria-hidden="true"></i></button>
+            <button class="pattern-option" data-pattern="initials" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="initials" aria-hidden="true"></canvas><span>Yours, truly<small>Your initials</small></span><i data-lucide="check" aria-hidden="true"></i></button>
+            <button class="pattern-option" data-pattern="birthflower" aria-pressed="false"><canvas width="150" height="150" data-thumbnail="birthflower" aria-hidden="true"></canvas><span>Born to bloom<small>Your birth flower</small></span><i data-lucide="check" aria-hidden="true"></i></button>
           </div>
+          <div id="initials-field" class="personal-field" hidden><label for="initials">Your initials</label><input id="initials" maxlength="3" pattern="[a-zA-Z]{1,3}" autocomplete="off" value="N" aria-describedby="initials-error"><p id="initials-error" class="field-error" hidden>Choose 1 to 3 letters, A to Z.</p></div>
+          <div id="birth-field" class="personal-field" hidden><label for="birth-month">Birth month</label><select id="birth-month"></select></div>
           <h2 class="section-label thread-label">02 <span>Choose your thread</span></h2>
           <div class="thread-options" role="group" aria-label="Thread colour">
             <button class="thread-swatch selected" data-palette="rose" style="--swatch:#b94463" title="Rose" aria-label="Rose thread" aria-pressed="true"></button>
             <button class="thread-swatch" data-palette="blue" style="--swatch:#537f9b" title="Cornflower" aria-label="Cornflower thread" aria-pressed="false"></button>
             <button class="thread-swatch" data-palette="peach" style="--swatch:#cf7b57" title="Peach" aria-label="Peach thread" aria-pressed="false"></button>
+            <button class="thread-swatch custom-swatch" data-palette="custom" title="Custom threads" aria-label="Custom threads" aria-pressed="false"><i data-lucide="palette" aria-hidden="true"></i></button>
           </div>
           <p class="thread-name" id="thread-name">Rose / olive / butter</p>
+          <div id="custom-threads" class="custom-threads" hidden><label>Petals<input type="color" id="colour-main" value="#ae3959"></label><label>Accent<input type="color" id="colour-accent" value="#d2ac59"></label><label>Leaves<input type="color" id="colour-leaf" value="#667c4e"></label></div>
           <div class="studio-note"><i data-lucide="heart" aria-hidden="true"></i><p>A little less hurry.<br>A little more here.</p></div>
         </aside>
 
@@ -65,6 +78,7 @@
           <div class="session-actions"><button id="reset-button" class="text-button" disabled><i data-lucide="rotate-ccw" aria-hidden="true"></i> Start over</button><button id="preview-button" class="text-button"><i data-lucide="eye" aria-hidden="true"></i> Preview stitches</button></div>
           <div class="session-progress"><div id="progress-bar"></div></div>
           <p class="progress-note" id="progress-note">One stitch at a time.</p>
+          <button id="take-break" class="text-button break-action" hidden><i data-lucide="coffee" aria-hidden="true"></i><span>Take a little break</span></button>
           <div class="daily-total"><i data-lucide="sun" aria-hidden="true"></i><div><strong id="today-minutes">0 minutes</strong><span>of time for yourself today</span></div></div>
         </aside>
       </div>
@@ -73,8 +87,21 @@
 
     <section id="collection" class="collection-view" hidden aria-labelledby="collection-title">
       <div class="intro"><div><p class="eyebrow">LITTLE MOMENTS, ALL YOURS</p><h1 id="collection-title">Your time, <em>beautifully kept.</em></h1></div><p class="today" id="collection-total">0 pieces stitched</p></div>
+      <div class="collection-toolbar">
+        <div class="segmented" role="group" aria-label="Collection view"><button data-collection-view="pieces" aria-pressed="true"><i data-lucide="grid-2x2" aria-hidden="true"></i> Pieces</button><button data-collection-view="calendar" aria-pressed="false"><i data-lucide="calendar-days" aria-hidden="true"></i> Patchwork</button></div>
+        <div class="backup-actions"><button id="export-backup" class="icon-button" title="Export collection backup" aria-label="Export collection backup"><i data-lucide="download" aria-hidden="true"></i></button><button id="import-backup" class="icon-button" title="Import collection backup" aria-label="Import collection backup"><i data-lucide="upload" aria-hidden="true"></i></button><input type="file" id="backup-file" accept=".json,application/json" hidden></div>
+      </div>
+      <div id="calendar-view" hidden>
+        <div class="calendar-heading"><div><p class="eyebrow">ONE DAY, ONE LITTLE PATCH</p><h2 id="calendar-month"></h2></div><div class="month-controls"><button id="previous-month" class="icon-button" aria-label="Previous month" title="Previous month"><i data-lucide="chevron-left" aria-hidden="true"></i></button><button id="current-month" class="text-button">Today</button><button id="next-month" class="icon-button" aria-label="Next month" title="Next month"><i data-lucide="chevron-right" aria-hidden="true"></i></button></div></div>
+        <div class="calendar-summary"><span id="month-total"></span><span id="week-total"></span></div>
+        <div class="weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        <div id="calendar-days" class="calendar-days" role="group" aria-label="Daily embroideries"></div>
+        <div class="day-heading"><h3 id="day-title"></h3><button id="show-month" class="text-button" hidden>All this month's pieces</button></div>
+        <p id="empty-day" class="empty-day" hidden>A quiet patch. No finished pieces here yet.</p>
+      </div>
       <div id="empty-collection" class="empty-collection"><i data-lucide="flower-2" aria-hidden="true"></i><h2>A place for your first piece.</h2><p>Every finished session belongs here.</p><a href="#studio" class="primary-button">Back to the studio <i data-lucide="arrow-up-right" aria-hidden="true"></i></a></div>
       <div id="collection-grid" class="collection-grid"></div>
+      <button id="load-more" class="text-button load-more" hidden>More little moments <i data-lucide="chevron-down" aria-hidden="true"></i></button>
     </section>
   </main>
 
@@ -83,7 +110,17 @@
     <p class="eyebrow">A LITTLE TIME, WELL SPENT</p><h2 id="finish-title">Look what you made.</h2>
     <canvas id="finished-piece" width="700" height="700" role="img" aria-label="Your completed embroidery"></canvas>
     <p id="finish-detail"></p><div class="finish-actions"><button id="download-finished" class="primary-button"><i data-lucide="download" aria-hidden="true"></i> Keep a picture</button><button id="view-collection" class="text-button">My collection <i data-lucide="arrow-right" aria-hidden="true"></i></button></div>
+    <button id="finish-break" class="text-button finish-break"><i data-lucide="coffee" aria-hidden="true"></i><span>Take a 5-minute break</span></button>
   </dialog>
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <button id="close-settings" class="icon-button close-dialog" aria-label="Close session settings"><i data-lucide="x" aria-hidden="true"></i></button>
+    <p class="eyebrow">AT YOUR OWN PACE</p><h2 id="settings-title">Little rituals.</h2>
+    <label class="setting-row" for="break-length"><span>After a finished piece</span><select id="break-length"><option value="0">No break</option><option value="5">5-minute break</option><option value="10">10-minute break</option><option value="15">15-minute break</option></select></label>
+    <label class="setting-row" for="notifications"><span>Completion notifications</span><input id="notifications" type="checkbox" role="switch"></label>
+    <p id="notification-note" class="settings-note" role="status"></p>
+    <p class="settings-note">Breaks begin only when you choose. Your collection stays in this browser.</p>
+  </dialog>
+  <template id="compact-template"><div class="mini-studio"><header><span class="mini-brand">soft stitch.</span><button class="icon-button mini-close" aria-label="Close mini timer" title="Close mini timer"><i data-lucide="x" aria-hidden="true"></i></button></header><p class="mini-status"></p><canvas class="mini-hoop" width="500" height="500" role="img" aria-label="Your embroidery"></canvas><div class="mini-time" role="timer"></div><p class="mini-pattern"></p><div class="mini-actions"><button class="primary-button mini-start"></button><button class="icon-button mini-sound" title="Completion sound" aria-label="Completion sound"><i data-lucide="volume-x" aria-hidden="true"></i></button></div><button class="text-button mini-break" hidden>Take a break</button></div></template>
   <div id="toast" class="toast" role="status" hidden></div>
 </body>
 </html>
